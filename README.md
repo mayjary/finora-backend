@@ -2,7 +2,7 @@
 
 This is the API server for Finora.
 
-- **Frontend repo**: `https://github.com/<your-username>/finora-frontend`
+- **Frontend repo**: `https://github.com/mayjary/finora-frontend`
 
 ## Tech
 
