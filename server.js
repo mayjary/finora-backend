@@ -6,6 +6,10 @@ import marketQuotesRoute from "./routes/market/quotes.js";
 import chartAnalysisRoute from "./routes/ai/chartAnalysis.js";
 import chartImageAnalysisRoute from "./routes/ai/chartImageAnalysis.js";
 import tradesRoute from "./routes/trades.js";
+import sentimentRoute from "./routes/ai/sentiment.js";
+import tradeInsightsRoute from "./ai/tradeInsights.js";
+import dimonChatRoute from "./ai/dimonChat.js";
+
 dotenv.config();
 
 const app = express();
@@ -17,13 +21,14 @@ app.use(express.json());
 // market data
 app.use("/api/market/quotes", marketQuotesRoute);
 
-// technical indicator analysis
+// AI
 app.use("/api/ai/chart-analysis", chartAnalysisRoute);
-
-// image based chart review (Gemini)
 app.use("/api/ai/chart-image-analysis", chartImageAnalysisRoute);
+app.use("/api/ai/sentiment", sentimentRoute);
+app.use("/api/ai/trade-insights", tradeInsightsRoute);
+app.use("/api/ai/dimon", dimonChatRoute);
 
-// trades
+// trades (THIS HANDLES EVERYTHING)
 app.use("/api/trades", tradesRoute);
 
 app.get("/", (req, res) => {

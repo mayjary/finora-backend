@@ -5,40 +5,53 @@ import dotenv from "dotenv";
 dotenv.config();
 const router = express.Router();
 
-const BASE_URL = "https://finnhub.io/api/v1/quote";
-const API_KEY = process.env.FINNHUB_API_KEY;
+const API_KEY = process.env.FMP_API_KEY;
 
-// Use ETFs instead of raw index symbols
 const INDEXES = ["SPY", "QQQ", "DIA"];
 const STOCKS = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"];
-const CRYPTO = ["BINANCE:BTCUSDT", "BINANCE:ETHUSDT"];
+const CRYPTO = ["BTCUSD", "ETHUSD"]; // FMP format
 
+// 🔥 FETCH FROM FMP
 const fetchQuote = async (symbol) => {
-  const url = `${BASE_URL}?symbol=${symbol}&token=${API_KEY}`;
-  const res = await fetch(url);
-  const data = await res.json();
+  try {
+    const res = await fetch(
+      `https://financialmodelingprep.com/stable/quote?symbol=${symbol}&apikey=LmJD1wKCFeVKZedU064yvWqiDxponnvu`
+    );
 
-  if (!data || data.c === 0) return null;
+    const data = await res.json();
 
-  return {
-    symbol,
-    price: data.c,
-    change: data.d,
-    changePercent: data.dp,
-  };
+    console.log("FMP:", symbol, data);
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return {
+        symbol,
+        price: null,
+        change: null,
+        changePercent: null,
+      };
+    }
+
+    const item = data[0];
+
+    return {
+      symbol: item.symbol,
+      price: item.price ?? null,
+      change: item.change ?? null,
+      changePercent: item.changesPercentage ?? null,
+    };
+  } catch (err) {
+    console.error("FMP error:", symbol, err);
+    return null;
+  }
 };
 
+// 🚀 ROUTE
 router.get("/", async (req, res) => {
   try {
-    const allSymbols = [
-      ...INDEXES,
-      ...STOCKS,
-      ...CRYPTO,
-    ];
+    const allSymbols = [...INDEXES, ...STOCKS, ...CRYPTO];
 
-    // 🚀 Parallel fetching instead of for-loops
     const results = await Promise.all(
-      allSymbols.map((symbol) => fetchQuote(symbol))
+      allSymbols.map((s) => fetchQuote(s))
     );
 
     const indexes = [];
@@ -53,7 +66,10 @@ router.get("/", async (req, res) => {
       } else if (STOCKS.includes(item.symbol)) {
         stocks.push(item);
       } else {
-        crypto.push(item);
+        crypto.push({
+          ...item,
+          symbol: item.symbol.replace("USD", ""), // BTC, ETH
+        });
       }
     });
 

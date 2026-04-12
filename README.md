@@ -39,6 +39,8 @@ By default the server listens on `http://localhost:5001` (or `PORT`).
 - `GET /api/market/quotes/*`
 - `POST /api/ai/chart-analysis/*`
 - `POST /api/ai/chart-image-analysis/*`
+- `POST /api/ai/dimon` → Dimon chat (Gemini, short replies; body: `{ "messages": [{ "role": "user"|"model", "text": "..." }] }`)
+- `POST /api/ai/trade-insights`
 - `/api/trades/*`
 
 ## Notes for deploying

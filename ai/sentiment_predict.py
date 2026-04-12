@@ -15,9 +15,9 @@ def analyze_sentiment(text):
 
     vader = sia.polarity_scores(clean)
 
-    if polarity > 0.1 or vader["compound"] > 0.2:
+    if polarity > 0.03 or vader["compound"] > 0.05:
         sentiment = "positive"
-    elif polarity < -0.1 or vader["compound"] < -0.2:
+    elif polarity < -0.03 or vader["compound"] < -0.05:
         sentiment = "negative"
     else:
         sentiment = "neutral"

@@ -106,23 +106,45 @@ router.post("/manual", async (req, res) => {
 });
 
 router.get("/performance", async (req, res) => {
-    try {
-      const result = await pool.query(`
-        SELECT
-          DATE(created_at) as date,
-          SUM(pnl) as daily_pnl
-        FROM trades
-        WHERE created_at >= NOW() - INTERVAL '30 days'
-        GROUP BY DATE(created_at)
-        ORDER BY DATE(created_at)
-      `);
-  
-      res.json(result.rows);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to fetch performance data" });
+  try {
+    const { data, error } = await supabase
+      .from("trades")
+      .select("exit_time, pnl")
+      .not("exit_time", "is", null);
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to fetch performance data" });
     }
-  });
+
+    // group by date manually
+    const grouped = {};
+
+    (data || []).forEach((trade) => {
+      const date = new Date(trade.exit_time).toISOString().split("T")[0];
+
+      if (!grouped[date]) {
+        grouped[date] = 0;
+      }
+
+      grouped[date] += Number(trade.pnl || 0);
+    });
+
+    // convert to array
+    const result = Object.entries(grouped)
+      .map(([date, daily_pnl]) => ({
+        date,
+        daily_pnl,
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    res.json(result);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch performance data" });
+  }
+});
 
 
 // ===============================
@@ -163,10 +185,10 @@ router.post("/import", async (req, res) => {
       .insert(rowsToInsert)
       .select("*");
 
-    if (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Import failed" });
-    }
+      if (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Import failed" });
+      }
 
     res.json({
       message: "Trades imported successfully",
@@ -214,6 +236,45 @@ router.get("/summary", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch summary" });
+  }
+});
+
+// ===============================
+// DELETE TRADE
+// ===============================
+// DELETE TRADE (SAFE)
+// ===============================
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Trade ID is required" });
+    }
+
+    const { data, error } = await supabase
+      .from("trades")
+      .delete()
+      .eq("id", id)
+      .select(); // 👈 THIS RETURNS DELETED ROW
+
+    if (error) {
+      console.error("DELETE ERROR:", error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "Trade not found" });
+    }
+
+    res.json({
+      message: "Trade deleted from database",
+      deleted: data[0],
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Delete failed" });
   }
 });
 
